@@ -2,17 +2,18 @@
 const {
   Client,
   GatewayIntentBits,
-  Events,
   REST,
   Routes,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+  Events
 } = require('discord.js');
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.CLIENT_ID;
 
 if (!token || !clientId) {
-  throw new Error('Missing DISCORD_TOKEN or CLIENT_ID');
+  console.error('Missing DISCORD_TOKEN or CLIENT_ID');
+  process.exit(1);
 }
 
 const client = new Client({
@@ -22,32 +23,42 @@ const client = new Client({
 const commands = [
   new SlashCommandBuilder()
     .setName('ping')
-    .setDescription('اختبر استجابة البوت')
+    .setDescription('اختبار البوت')
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('server')
+    .setDescription('عرض معلومات السيرفر')
     .toJSON()
 ];
 
-client.once(Events.ClientReady, async (readyClient) => {
-  console.log(`Bot online: ${readyClient.user.tag}`);
+client.once(Events.ClientReady, async () => {
+  console.log(`Online: ${client.user.tag}`);
+
+  const rest = new REST({ version: '10' }).setToken(token);
 
   try {
-    const rest = new REST({ version: '10' }).setToken(token);
-
     await rest.put(
       Routes.applicationCommands(clientId),
       { body: commands }
     );
-
-    console.log('Slash commands registered');
+    console.log('Commands registered');
   } catch (error) {
-    console.error('Command registration failed:', error);
+    console.error(error);
   }
 });
 
-client.on(Events.InteractionCreate, async (interaction) => {
+client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === 'ping') {
     await interaction.reply('Pong! 🟢 البوت شغال');
+  }
+
+  if (interaction.commandName === 'server') {
+    await interaction.reply(
+      `اسم السيرفر: ${interaction.guild.name}\nعدد الأعضاء: ${interaction.guild.memberCount}`
+    );
   }
 });
 
